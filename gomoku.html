@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋 Deluxe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #16213e 100%);
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #particles-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            will-change: transform;
+        }
+
+        .game-container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            gap: 40px;
+            transform: translateZ(0);
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            min-width: 220px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel h1 {
+            font-family: 'Cinzel Decorative', serif;
+            font-size: 1.8rem;
+            color: #ffd700;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .status {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .current-player {
+            font-size: 1.2rem;
+            color: #fff;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .player-piece {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: inset 0 -3px 6px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .player-piece.black {
+            background: radial-gradient(circle at 30% 30%, #4a4a4a, #1a1a1a);
+        }
+
+        .player-piece.white {
+            background: radial-gradient(circle at 30% 30%, #ffffff, #d0d0d0);
+        }
+
+        .turn-count {
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .winner-display {
+            font-size: 1.4rem;
+            color: #00d4ff;
+            text-shadow: 0 0 15px rgba(0, 212, 255, 0.7);
+            animation: pulse 1s ease-in-out infinite;
+            margin-top: 15px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 20px;
+            margin: 10px 0;
+            font-size: 1rem;
+            font-family: 'Noto Sans SC', sans-serif;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 212, 255, 0.6);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .board-wrapper {
+            position: relative;
+            padding: 20px;
+            background: linear-gradient(145deg, #2a2a4a, #1a1a2e);
+            border-radius: 20px;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transform: translateZ(0);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 40px);
+            grid-template-rows: repeat(15, 40px);
+            background: 
+                linear-gradient(to right, #8b7355 1px, transparent 1px),
+                linear-gradient(to bottom, #8b7355 1px, transparent 1px),
+                linear-gradient(to right, #6b5344 2px, transparent 2px),
+                linear-gradient(to bottom, #6b5344 2px, transparent 2px),
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 39px,
+                    #a08060 39px,
+                    #a08060 40px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 39px,
+                    #a08060 39px,
+                    #a08060 40px
+                ),
+                linear-gradient(135deg, #c4a35a 0%, #a08050 50%, #8b7355 100%);
+            background-size: 40px 40px, 40px 40px, 40px 40px, 40px 40px, 40px 40px, 40px 40px, 100% 100%;
+            background-position: 19px 19px, 19px 19px, 19px 19px, 19px 19px, 0 0, 0 0, 0 0;
+            border: 8px solid #5d4e37;
+            border-radius: 4px;
+            box-shadow: 
+                inset 0 0 30px rgba(0, 0, 0, 0.3),
+                0 10px 40px rgba(0, 0, 0, 0.5);
+            position: relative;
+            cursor: pointer;
+        }
+
+        .cell {
+            width: 40px;
+            height: 40px;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .cell::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            transition: background 0.2s;
+            border-radius: 50%;
+        }
+
+        .cell:hover:not(.occupied)::before {
+            background: rgba(255, 215, 0, 0.2);
+        }
+
+        .piece {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            position: absolute;
+            z-index: 2;
+            animation: placePiece 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            will-change: transform, opacity;
+        }
+
+        @keyframes placePiece {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .piece.black {
+            background: radial-gradient(circle at 30% 30%, #5a5a5a 0%, #1a1a1a 50%, #000 100%);
+            box-shadow: 
+                inset 0 -4px 8px rgba(0, 0, 0, 0.5),
+                inset 0 4px 8px rgba(255, 255, 255, 0.1),
+                0 3px 6px rgba(0, 0, 0, 0.4);
+        }
+
+        .piece.white {
+            background: radial-gradient(circle at 30% 30%, #ffffff 0%, #e8e8e8 50%, #d0d0d0 100%);
+            box-shadow: 
+                inset 0 -4px 8px rgba(0, 0, 0, 0.15),
+                inset 0 4px 8px rgba(255, 255, 255, 0.8),
+                0 3px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .piece.last {
+            position: relative;
+        }
+
+        .piece.last::after {
+            content: '';
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #ff4444;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.8);
+            animation: lastPulse 1s ease-in-out infinite;
+        }
+
+        .piece.black.last::after {
+            background: #ff4444;
+        }
+
+        .piece.white.last::after {
+            background: #ff4444;
+        }
+
+        @keyframes lastPulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.7; }
+        }
+
+        .win-line {
+            position: absolute;
+            height: 6px;
+            background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff, #9b59b6);
+            background-size: 200% 100%;
+            animation: rainbow 1s linear infinite;
+            border-radius: 3px;
+            z-index: 3;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+            pointer-events: none;
+            will-change: transform, opacity;
+        }
+
+        @keyframes rainbow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+
+        .star-point {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #1a1a1a;
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        .info-text {
+            text-align: center;
+            color: #aaa;
+            font-size: 0.85rem;
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 1200px) {
+            .game-container {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .panel {
+                min-width: auto;
+                width: 100%;
+                max-width: 400px;
+            }
+            
+            .board {
+                grid-template-columns: repeat(15, 32px);
+                grid-template-rows: repeat(15, 32px);
+            }
+            
+            .cell {
+                width: 32px;
+                height: 32px;
+            }
+            
+            .piece {
+                width: 28px;
+                height: 28px;
+            }
+        }
+
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 215, 0, 0.4);
+            animation: rippleEffect 0.6s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes rippleEffect {
+            0% {
+                width: 0;
+                height: 0;
+                opacity: 1;
+            }
+            100% {
+                width: 100px;
+                height: 100px;
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particles-canvas"></canvas>
+    
+    <div class="game-container">
+        <div class="panel">
+            <h1>五子棋</h1>
+            <div class="status">
+                <div class="current-player" id="currentPlayer">
+                    當前回合: 
+                    <span class="player-piece black" id="currentPiece"></span>
+                    <span id="playerText">黑方</span>
+                </div>
+                <div class="turn-count" id="turnCount">回合: 0</div>
+                <div class="winner-display" id="winnerDisplay"></div>
+            </div>
+            <button class="btn btn-primary" id="undoBtn">悔 棋</button>
+            <button class="btn btn-secondary" id="restartBtn">重新開始</button>
+            <div class="info-text">
+                點擊棋盤下子<br>
+                先連成五子獲勝
+            </div>
+        </div>
+        
+        <div class="board-wrapper">
+            <div class="board" id="board"></div>
+        </div>
+        
+        <div class="panel">
+            <h1>遊戲資訊</h1>
+            <div class="info-text">
+                <p>黑方先行</p>
+                <p>輪流落子</p>
+                <p>五子連線</p>
+                <p>即獲勝利</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BOARD_SIZE = 15;
+        const CELL_SIZE = 40;
+        const PIECE_SIZE = 34;
+        const STAR_POINTS = [
+            [3, 3], [3, 7], [3, 11],
+            [7, 3], [7, 7], [7, 11],
+            [11, 3], [11, 7], [11, 11]
+        ];
+        const MAX_PARTICLES = 60;
+        const PARTICLE_CONNECTION_DIST = 100;
+
+        let board = [];
+        let currentPlayer = 'black';
+        let turnCount = 0;
+        let gameOver = false;
+        let lastMove = null;
+        let history = [];
+
+        function initGame() {
+            board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(null));
+            currentPlayer = 'black';
+            turnCount = 0;
+            gameOver = false;
+            lastMove = null;
+            history = [];
+            renderBoard();
+            updateUI();
+            winnerDisplayEl.textContent = '';
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+            
+            const cells = [];
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.row = row;
+                    cell.dataset.col = col;
+                    
+                    if (STAR_POINTS.some(([r, c]) => r === row && c === col)) {
+                        const star = document.createElement('div');
+                        star.className = 'star-point';
+                        cell.appendChild(star);
+                    }
+                    
+                    boardEl.appendChild(cell);
+                    cells.push(cell);
+                }
+            }
+            
+            boardEl.onclick = (e) => {
+                const cell = e.target.closest('.cell');
+                if (cell) {
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    handleMove(row, col);
+                }
+            };
+        }
+
+        function handleMove(row, col) {
+            if (gameOver || board[row][col]) return;
+            
+            board[row][col] = currentPlayer;
+            history.push({ row, col, player: currentPlayer });
+            lastMove = { row, col };
+            turnCount++;
+            
+            const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+            const piece = document.createElement('div');
+            piece.className = `piece ${currentPlayer}`;
+            cell.appendChild(piece);
+            cell.classList.add('occupied');
+            
+            createRipple(cell);
+            
+            const winResult = checkWin(row, col, currentPlayer);
+            if (winResult) {
+                gameOver = true;
+                highlightWinLine(winResult);
+                winnerDisplayEl.textContent = 
+                    `${currentPlayer === 'black' ? '黑方' : '白方'} 獲勝!`;
+            } else {
+                currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+            }
+            
+            updateUI();
+        }
+
+        function createRipple(cell) {
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple';
+            const rect = cell.getBoundingClientRect();
+            ripple.style.left = '50%';
+            ripple.style.top = '50%';
+            ripple.style.marginLeft = '-50px';
+            ripple.style.marginTop = '-50px';
+            cell.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+        }
+
+        function checkWin(row, col, player) {
+            const directions = [
+                [[0, 1], [0, -1]],
+                [[1, 0], [-1, 0]],
+                [[1, 1], [-1, -1]],
+                [[1, -1], [-1, 1]]
+            ];
+            
+            for (const [dir1, dir2] of directions) {
+                let count = 1;
+                const winCells = [[row, col]];
+                
+                for (const [dr, dc] of [dir1, dir2]) {
+                    let r = row + dr;
+                    let c = col + dc;
+                    
+                    while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === player) {
+                        count++;
+                        winCells.push([r, c]);
+                        r += dr;
+                        c += dc;
+                    }
+                }
+                
+                if (count >= 5) {
+                    return winCells;
+                }
+            }
+            
+            return null;
+        }
+
+        function highlightWinLine(winCells) {
+            if (winCells.length < 5) return;
+            
+            const start = winCells[0];
+            const end = winCells[winCells.length - 1];
+            
+            const boardEl = document.getElementById('board');
+            const line = document.createElement('div');
+            line.className = 'win-line';
+            
+            const cellSize = CELL_SIZE;
+            const padding = 20;
+            
+            const x1 = start[1] * cellSize + cellSize / 2;
+            const y1 = start[0] * cellSize + cellSize / 2;
+            const x2 = end[1] * cellSize + cellSize / 2;
+            const y2 = end[0] * cellSize + cellSize / 2;
+            
+            const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+            const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+            
+            line.style.width = length + 'px';
+            line.style.left = (x1 + padding) + 'px';
+            line.style.top = (y1 + padding - 3) + 'px';
+            line.style.transform = `rotate(${angle}deg)`;
+            line.style.transformOrigin = '0 50%';
+            
+            boardEl.appendChild(line);
+        }
+
+        function undo() {
+            if (history.length === 0 || gameOver) return;
+            
+            const last = history.pop();
+            board[last.row][last.col] = null;
+            
+            const cell = document.querySelector(`.cell[data-row="${last.row}"][data-col="${last.col}"]`);
+            const piece = cell.querySelector('.piece');
+            if (piece) piece.remove();
+            cell.classList.remove('occupied');
+            
+            if (history.length > 0) {
+                const prev = history[history.length - 1];
+                lastMove = { row: prev.row, col: prev.col };
+            } else {
+                lastMove = null;
+            }
+            
+            currentPlayer = last.player;
+            turnCount = Math.max(0, turnCount - 1);
+            
+            const winLine = document.querySelector('.win-line');
+            if (winLine) winLine.remove();
+            
+            gameOver = false;
+            winnerDisplayEl.textContent = '';
+            updateUI();
+        }
+
+        const currentPieceEl = document.getElementById('currentPiece');
+        const playerTextEl = document.getElementById('playerText');
+        const turnCountEl = document.getElementById('turnCount');
+        const winnerDisplayEl = document.getElementById('winnerDisplay');
+        
+        function updateUI() {
+            currentPieceEl.className = `player-piece ${currentPlayer}`;
+            playerTextEl.textContent = currentPlayer === 'black' ? '黑方' : '白方';
+            turnCountEl.textContent = `回合: ${turnCount}`;
+            
+            document.querySelectorAll('.piece').forEach(p => p.classList.remove('last'));
+            if (lastMove) {
+                const cell = document.querySelector(`.cell[data-row="${lastMove.row}"][data-col="${lastMove.col}"]`);
+                const piece = cell?.querySelector('.piece');
+                if (piece) piece.classList.add('last');
+            }
+        }
+
+        // Particles Background
+        const canvas = document.getElementById('particles-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = (Math.random() - 0.5) * 0.3;
+                this.speedY = (Math.random() - 0.5) * 0.3;
+                this.opacity = Math.random() * 0.5 + 0.2;
+                this.color = Math.random() > 0.5 ? '#00d4ff' : '#ffd700';
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                
+                if (this.x < 0 || this.x > canvas.width || 
+                    this.y < 0 || this.y > canvas.height) {
+                    this.reset();
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.opacity;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            const count = Math.floor((canvas.width * canvas.height) / 20000);
+            for (let i = 0; i < Math.min(count, MAX_PARTICLES); i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (const p of particles) {
+                p.update();
+                p.draw();
+            }
+            
+            const maxDistSq = PARTICLE_CONNECTION_DIST * PARTICLE_CONNECTION_DIST;
+            for (let i = 0; i < particles.length; i++) {
+                const p1 = particles[i];
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const dx = p1.x - p2.x;
+                    const dy = p1.y - p2.y;
+                    const distSq = dx * dx + dy * dy;
+                    if (distSq < maxDistSq) {
+                        const alpha = 0.15 * (1 - distSq / maxDistSq);
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.strokeStyle = `rgba(0, 212, 255, ${alpha})`;
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            requestAnimationFrame(animateParticles);
+        }
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            initParticles();
+        });
+
+        document.getElementById('undoBtn').addEventListener('click', undo);
+        document.getElementById('restartBtn').addEventListener('click', initGame);
+
+        resizeCanvas();
+        initParticles();
+        animateParticles();
+        initGame();
+    </script>
+</body>
+</html>
